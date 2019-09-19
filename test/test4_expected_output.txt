@@ -1,0 +1,13 @@
+define i64 @foobar(i64 %x, i64 %y, i64 %c) {
+entry:
+  %addtmp = add i64 %x, %y
+  %subtmp = sub i64 %addtmp, %c
+  ret i64 %subtmp
+}
+
+define i64 @myfunc(i64 %x, i64 %y) {
+entry:
+  %calltmp = call i64 @foobar(i64 %x, i64 %y, i64 5)
+  ret i64 %calltmp
+}
+Wrote output.o

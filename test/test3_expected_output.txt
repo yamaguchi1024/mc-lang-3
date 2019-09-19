@@ -1,0 +1,6 @@
+define i64 @myfunc(i64 %x, i64 %y) {
+entry:
+  %addtmp = add i64 %x, %y
+  ret i64 %addtmp
+}
+Wrote output.o
