@@ -1,5 +1,0 @@
-define i64 @myfunc() {
-entry:
-  ret i64 -85
-}
-Wrote output.o

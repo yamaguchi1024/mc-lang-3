@@ -1,5 +1,5 @@
-def foobar(x y c)
-    x + y - c;
-
-def myfunc (x y)
-    foobar(x, y, 5);
+def myfunc(x y)
+    if x < y then
+        x + 1
+    else
+        y + 1

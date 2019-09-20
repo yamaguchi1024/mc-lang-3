@@ -81,6 +81,11 @@ Value *BinaryAST::codegen() {
             return Builder.CreateSub(L, R, "subtmp");
         case '*':
             return Builder.CreateMul(L, R, "multmp");
+        // TODO 3.1: '<'を実装してみよう
+        // '<'のcodegenを実装して下さい。その際、以下のIRBuilderのメソッドが使えます。
+        // CreateICmp: https://llvm.org/doxygen/classllvm_1_1IRBuilder.html#a103d309fa238e186311cbeb961b5bcf4
+        // CreateIntCast: https://llvm.org/doxygen/classllvm_1_1IRBuilder.html#a5bb25de40672dedc0d65e608e4b78e2f
+        // CreateICmpの返り値がi1(1bit)なので、CreateIntCastはそれをint64にcastするのに用います。
         default:
             return LogErrorV("invalid binary operator");
     }
@@ -137,6 +142,65 @@ Function *FunctionAST::codegen() {
     // もし関数のbodyがnullptrなら、この関数をModuleから消す。
     function->eraseFromParent();
     return nullptr;
+}
+
+Value *IfExprAST::codegen() {
+    // if x < 5 then x + 3 else x - 5;
+    // というコードが入力だと考える。
+    // Cond->codegen()によって"x < 5"のcondition部分がcodegenされ、その返り値(int)が
+    // CondVに格納される。
+    Value *CondV = Cond->codegen();
+    if (!CondV)
+        return nullptr;
+
+    // CondVはint64なので、int64の0とequalかどうか判定することでCondVをbool型にする。
+    CondV = Builder.CreateICmpEQ(
+            CondV, ConstantInt::get(Context, APInt(64, 0)), "ifcond");
+    // if文を呼んでいる関数の名前
+    Function *ParentFunc = Builder.GetInsertBlock()->getParent();
+
+    // "thenだった場合"と"elseだった場合"のブロックを作り、ラベルを付ける。
+    // "ifcont"はif文が"then"と"else"の処理の後、二つのコントロールフローを
+    // マージするブロック。
+    BasicBlock *ThenBB =
+        BasicBlock::Create(Context, "then", ParentFunc);
+    BasicBlock *ElseBB = BasicBlock::Create(Context, "else");
+    BasicBlock *MergeBB = BasicBlock::Create(Context, "ifcont");
+    // condition, trueだった場合のブロック、falseだった場合のブロックを登録する。
+    // https://llvm.org/doxygen/classllvm_1_1IRBuilder.html#a3393497feaca1880ab3168ee3db1d7a4
+    Builder.CreateCondBr(CondV, ThenBB, ElseBB);
+
+    // "then"のブロックを作り、その内容(expression)をcodegenする。
+    Builder.SetInsertPoint(ThenBB);
+    Value *ThenV = Then->codegen();
+    if (!ThenV)
+        return nullptr;
+    // "then"のブロックから出る時は"ifcont"ブロックに飛ぶ。
+    Builder.CreateBr(MergeBB);
+    // ThenBBをアップデートする。
+    ThenBB = Builder.GetInsertBlock();
+
+    // TODO 3.4: "else"ブロックのcodegenを実装しよう
+    // "then"ブロックを参考に、"else"ブロックのcodegenを実装して下さい。
+    ParentFunc->getBasicBlockList().push_back(ElseBB);
+
+    // "ifcont"ブロックのcodegen
+    ParentFunc->getBasicBlockList().push_back(MergeBB);
+    Builder.SetInsertPoint(MergeBB);
+    // https://llvm.org/docs/LangRef.html#phi-instruction
+    // PHINodeは、"then"ブロックのValueか"else"ブロックのValue
+    // どちらをifブロック全体の返り値にするかを実行時に選択します。
+    // もちろん、"then"ブロックに入るconditionなら前者が選ばれ、そうでなければ後者な訳です。
+    // LLVM IRはSSAという"全ての変数が一度だけassignされる"規約があるため、
+    // 値を上書きすることが出来ません。従って、このように実行時にコントロールフローの
+    // 値を選択する機能が必要です。
+    PHINode *PN =
+        Builder.CreatePHI(Type::getInt64Ty(Context), 2, "iftmp");
+
+    PN->addIncoming(ThenV, ThenBB);
+    // TODO 3.4を実装したらコメントアウトを外して下さい。
+    //PN->addIncoming(ElseV, ElseBB);
+    return PN;
 }
 
 //===----------------------------------------------------------------------===//

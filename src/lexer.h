@@ -12,7 +12,10 @@ enum Token {
     tok_eof = -1,
     tok_def = -2,
     tok_identifier = -3,
-    tok_number = -4
+    tok_number = -4,
+    tok_if = -5,
+    tok_then = -6,
+    tok_else = -7
 };
 
 class Lexer {
@@ -39,6 +42,8 @@ class Lexer {
 
                 if (identifierStr == "def")
                     return tok_def;
+                // TODO 3.2: "if", "then", "else"をトークナイズしてみよう
+                // 上記の"def"の例を参考に、3つの予約語をトークナイズして下さい。
                 return tok_identifier;
             }
 

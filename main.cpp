@@ -1,11 +1,11 @@
 #include <iostream>
 
 extern "C" {
-    int myfunc(int, int);
+    int fib(int);
 }
 
 int main() {
-    std::cout << "Call myfunc with 3 and 10: " << myfunc(3, 10) << std::endl;
+    std::cout << "Call fib with 10: " << fib(10) << std::endl;
 
     return 0;
 }

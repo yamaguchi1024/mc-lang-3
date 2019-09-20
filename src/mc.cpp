@@ -64,6 +64,8 @@ int main(int argc, char *argv[]) {
 
     // 二項演算子の定義
     // 数字が低いほど結合度が低い
+    // TODO 3.1: '<'を実装してみよう
+    // BinopPrecedenceに'<'を登録して下さい。
     BinopPrecedence['+'] = 20;
     BinopPrecedence['-'] = 20;
     BinopPrecedence['*'] = 40;

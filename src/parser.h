@@ -87,6 +87,17 @@ namespace {
 
         Function *codegen();
     };
+
+    class IfExprAST : public ExprAST {
+        std::unique_ptr<ExprAST> Cond, Then, Else;
+
+        public:
+        IfExprAST(std::unique_ptr<ExprAST> Cond, std::unique_ptr<ExprAST> Then,
+                std::unique_ptr<ExprAST> Else)
+            : Cond(std::move(Cond)), Then(std::move(Then)), Else(std::move(Else)) {}
+
+        Value *codegen() override;
+    };
 } // end anonymous namespace
 
 //===----------------------------------------------------------------------===//
@@ -211,6 +222,27 @@ static std::unique_ptr<ExprAST> ParseIdentifierExpr() {
     return llvm::make_unique<CallExprAST>(IdName, std::move(args));
 }
 
+static std::unique_ptr<ExprAST> ParseIfExpr() {
+    return nullptr;
+    // TODO 3.3: If文のパーシングを実装してみよう。
+    // 1. ParseIfExprに来るということは現在のトークンが"if"なので、
+    // トークンを次に進めます。
+
+    // 2. ifの次はbranching conditionを表すexpressionがある筈なので、
+    // ParseExpressionを呼んでconditionをパースします。
+
+    // 3. "if x < 4 then .."のような文の場合、今のトークンは"then"である筈なので
+    // それをチェックし、トークンを次に進めます。
+
+    // 4. "then"ブロックのexpressionをParseExpressionを呼んでパースします。
+
+    // 5. 3と同様、今のトークンは"else"である筈なのでチェックし、トークンを次に進めます。
+
+    // 6. "else"ブロックのexpressionをParseExpressionを呼んでパースします。
+
+    // 7. IfExprASTを作り、returnします。
+}
+
 // ParsePrimary - NumberASTか括弧をパースする関数
 static std::unique_ptr<ExprAST> ParsePrimary() {
     switch (CurTok) {
@@ -222,6 +254,8 @@ static std::unique_ptr<ExprAST> ParsePrimary() {
             return ParseNumberExpr();
         case '(':
             return ParseParenExpr();
+        case tok_if:
+            return ParseIfExpr();
     }
 }
 
