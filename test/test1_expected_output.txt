@@ -1,7 +1,7 @@
 define i64 @myfunc(i64 %x, i64 %y) {
 entry:
-  %ugttmp = icmp ugt i64 %x, %y
-  %cast_i1_to_i64 = sext i1 %ugttmp to i64
+  %ulttmp = icmp ult i64 %x, %y
+  %cast_i1_to_i64 = sext i1 %ulttmp to i64
   ret i64 %cast_i1_to_i64
 }
 Wrote output.o
