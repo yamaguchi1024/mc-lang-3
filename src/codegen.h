@@ -33,9 +33,9 @@ Value *LogErrorV(const char *str) {
 Value *VariableExprAST::codegen() {
     // NamedValuesの中にVariableExprAST::NameとマッチするValueがあるかチェックし、
     // あったらそのValueを返す。
-    Value *V = NamedValues[variableName];
+  Value *V = NamedValues[variableName];
     if (!V)
-        return LogErrorV("Unknown variable name");
+      return LogErrorV(("Unknown variable name: " + variableName).c_str());
     return V;
 }
 
@@ -154,7 +154,7 @@ Value *IfExprAST::codegen() {
     // if x < 5 then x + 3 else x - 5;
     // というコードが入力だと考える。
     // Cond->codegen()によって"x < 5"のcondition部分がcodegenされ、その返り値(int)が
-    // CondVに格納される。
+    // CondVに格納される
     Value *CondV = Cond->codegen();
     if (!CondV)
         return nullptr;
@@ -186,9 +186,22 @@ Value *IfExprAST::codegen() {
     // ThenBBをアップデートする。
     ThenBB = Builder.GetInsertBlock();
 
+    // done then block
+
     // TODO 3.4: "else"ブロックのcodegenを実装しよう
     // "then"ブロックを参考に、"else"ブロックのcodegenを実装して下さい。
+
+    // beginning of else block
     ParentFunc->getBasicBlockList().push_back(ElseBB);
+
+    Builder.SetInsertPoint(ElseBB);
+    Value* ElseV = Then->codegen();
+    if (!ElseV) return nullptr;
+
+    // Create Branch to MergeBB
+    Builder.CreateBr(MergeBB);
+    // update
+    ElseBB = Builder.GetInsertBlock();
 
     // "ifcont"ブロックのcodegen
     ParentFunc->getBasicBlockList().push_back(MergeBB);
@@ -205,7 +218,7 @@ Value *IfExprAST::codegen() {
 
     PN->addIncoming(ThenV, ThenBB);
     // TODO 3.4を実装したらコメントアウトを外して下さい。
-    //PN->addIncoming(ElseV, ElseBB);
+    PN->addIncoming(ElseV, ElseBB);
     return PN;
 }
 

@@ -1,0 +1,20 @@
+define i64 @myfunc(i64 %x, i64 %y) {
+entry:
+  %ulttmp = icmp ult i64 %x, %y
+  %cast_i1_to_i64 = sext i1 %ulttmp to i64
+  %ifcond = icmp eq i64 %cast_i1_to_i64, 0
+  br i1 %ifcond, label %then, label %else
+
+then:                                             ; preds = %entry
+  %addtmp = add i64 %x, 1
+  br label %ifcont
+
+else:                                             ; preds = %entry
+  %addtmp1 = add i64 %x, 1
+  br label %ifcont
+
+ifcont:                                           ; preds = %else, %then
+  %iftmp = phi i64 [ %addtmp, %then ], [ %addtmp1, %else ]
+  ret i64 %iftmp
+}
+Wrote output.o
