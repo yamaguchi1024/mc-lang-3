@@ -5,7 +5,6 @@ extern "C" {
 }
 
 int main() {
-    std::cout << "Call fib with 10: " << fib(10) << std::endl;
-
-    return 0;
+  std::cout << "Call fib with 10: " << fib(10) << std::endl;
+  return 0;
 }

@@ -72,22 +72,28 @@ Value *BinaryAST::codegen() {
         return nullptr;
 
     switch (Op) {
-        case '+':
-            // LLVM IR Builerを使い、この二項演算のIRを作る
-            return Builder.CreateAdd(L, R, "addtmp");
-            // TODO 1.7: '-'と'*'に対してIRを作ってみよう
-            // 上の行とhttps://llvm.org/doxygen/classllvm_1_1IRBuilder.htmlを参考のこと
-        case '-':
-            return Builder.CreateSub(L, R, "subtmp");
-        case '*':
-            return Builder.CreateMul(L, R, "multmp");
-        // TODO 3.1: '<'を実装してみよう
-        // '<'のcodegenを実装して下さい。その際、以下のIRBuilderのメソッドが使えます。
-        // CreateICmp: https://llvm.org/doxygen/classllvm_1_1IRBuilder.html#a103d309fa238e186311cbeb961b5bcf4
-        // CreateIntCast: https://llvm.org/doxygen/classllvm_1_1IRBuilder.html#a5bb25de40672dedc0d65e608e4b78e2f
-        // CreateICmpの返り値がi1(1bit)なので、CreateIntCastはそれをint64にcastするのに用います。
-        default:
-            return LogErrorV("invalid binary operator");
+    case '+':
+      // LLVM IR Builerを使い、この二項演算のIRを作る
+      return Builder.CreateAdd(L, R, "addtmp");
+      // TODO 1.7: '-'と'*'に対してIRを作ってみよう
+      // 上の行とhttps://llvm.org/doxygen/classllvm_1_1IRBuilder.htmlを参考のこと
+    case '-':
+      return Builder.CreateSub(L, R, "subtmp");
+    case '*':
+      return Builder.CreateMul(L, R, "multmp");
+      // TODO 3.1: '<'を実装してみよう
+      // '<'のcodegenを実装して下さい。その際、以下のIRBuilderのメソッドが使えます。
+      // CreateICmp: https://llvm.org/doxygen/classllvm_1_1IRBuilder.html#a103d309fa238e186311cbeb961b5bcf4
+      // CreateIntCast: https://llvm.org/doxygen/classllvm_1_1IRBuilder.html#a5bb25de40672dedc0d65e608e4b78e2f
+      // CreateICmpの返り値がi1(1bit)なので、CreateIntCastはそれをint64にcastするのに用います。
+    case '<':
+      return Builder.CreateIntCast(
+				 Builder.CreateICmpULT(L, R, "ulttmp"),
+				 Type::getInt64Ty(Context),
+				 true,
+				 "cast_i1_to_i64");
+    default:
+      return LogErrorV("invalid binary operator");
     }
 }
 
