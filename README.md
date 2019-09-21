@@ -27,7 +27,7 @@ $ make
 $ ./mc test/test5.mc
 $ clang++ main.cpp output.o -o main
 $ ./main                     
-Call fib with 10: 34
+Call fib with 10: 55
 ```
 余力がある方は、fibよりも複雑な例をMC言語で実装してみて下さい。
 
