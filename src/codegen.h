@@ -87,6 +87,11 @@ Value *BinaryAST::codegen() {
       // CreateIntCast: https://llvm.org/doxygen/classllvm_1_1IRBuilder.html#a5bb25de40672dedc0d65e608e4b78e2f
       // CreateICmpの返り値がi1(1bit)なので、CreateIntCastはそれをint64にcastするのに用います。
     case '<':
+      std::cout << Builder.CreateIntCast(
+				 Builder.CreateICmpULT(L, R, "ulttmp"),
+				 Type::getInt64Ty(Context),
+				 true,
+				 "cast_i1_to_i64") << std::endl;
       return Builder.CreateIntCast(
 				 Builder.CreateICmpULT(L, R, "ulttmp"),
 				 Type::getInt64Ty(Context),
@@ -160,7 +165,7 @@ Value *IfExprAST::codegen() {
         return nullptr;
 
     // CondVはint64なので、int64の0とequalかどうか判定することでCondVをbool型にする。
-    CondV = Builder.CreateICmpEQ(
+    CondV = Builder.CreateICmpNE(
             CondV, ConstantInt::get(Context, APInt(64, 0)), "ifcond");
     // if文を呼んでいる関数の名前
     Function *ParentFunc = Builder.GetInsertBlock()->getParent();
@@ -195,7 +200,7 @@ Value *IfExprAST::codegen() {
     ParentFunc->getBasicBlockList().push_back(ElseBB);
 
     Builder.SetInsertPoint(ElseBB);
-    Value* ElseV = Then->codegen();
+    Value* ElseV = Else->codegen();
     if (!ElseV) return nullptr;
 
     // Create Branch to MergeBB

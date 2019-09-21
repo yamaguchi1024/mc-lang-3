@@ -1,4 +1,8 @@
 def fib(x)
-  # TODO 3.5
-  # Delete "1" and write fib here
-  1
+  if (x<1) then
+    x
+  else
+    if (x<3) then
+      1
+    else
+      fib(x-1) + fib(x-2) 
