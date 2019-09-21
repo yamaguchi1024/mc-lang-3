@@ -9,5 +9,9 @@ clean:
 	rm mc output.o
 
 build: output.o
-	$(CXX) ./main.cpp ./output.o -o ./main
+	$(CXX) main.cpp ./output.o -o ./main
 	./main
+
+test: output.o
+	$(CXX) test.cpp ./output.o -o ./tst
+	./tst

@@ -14,3 +14,6 @@
 
 ## 3-5
  - add fib function
+
+## add-div
+ - add '/' to codegen.h & mc.cpp

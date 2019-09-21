@@ -80,7 +80,11 @@ Value *BinaryAST::codegen() {
     case '-':
       return Builder.CreateSub(L, R, "subtmp");
     case '*':
-      return Builder.CreateMul(L, R, "multmp");
+	return Builder.CreateMul(L, R, "multmp");
+    case '/':
+      // ref
+      // https://llvm.org/doxygen/Value_8h_source.html#l00245
+      return Builder.CreateUDiv(L, R, "divtmp");
     case ge:
       return Builder.CreateIntCast(
 				   Builder.CreateICmpUGE(L, R, "ugetmp"),
