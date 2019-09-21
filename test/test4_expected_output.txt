@@ -1,8 +1,8 @@
 define i64 @myfunc(i64 %x, i64 %y) {
 entry:
-  %ugttmp = icmp ugt i64 %x, %y
-  %cast_i1_to_i64 = sext i1 %ugttmp to i64
-  %ifcond = icmp eq i64 %cast_i1_to_i64, 0
+  %slttmp = icmp slt i64 %x, %y
+  %cast_i1_to_i64 = sext i1 %slttmp to i64
+  %ifcond = icmp ne i64 %cast_i1_to_i64, 0
   br i1 %ifcond, label %then, label %else
 
 then:                                             ; preds = %entry
