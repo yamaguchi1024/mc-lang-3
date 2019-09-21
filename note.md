@@ -17,3 +17,20 @@
 
 ## add-div
  - add '/' to codegen.h & mc.cpp
+
+## implement ult and ugt
+ - add Builder.CreateICmpUGT(L, R, "ugttmp");
+ - add Builder.CreateICmpULT(L, R, "ulttmp");
+ - update BinopPrecedence
+ 
+## implement ule and uge
+ - update the difinition of BinopPrecedence
+   - std::map< char, int > ->
+### checklist
+ - [x] add ult and ugt
+ - [x] update BinOpPrecedence std::map<char,int> -> std::map<int, int > in parser.h
+ - [x] add enum in mc.cpp
+ - [x] add checking whether Curtok is '=' before calling ParsePrimary() in ParseBinOpRHS() in parser.h
+   - [x] if CurTok is '=', call getNextToken() and ParsePrimary()
+ - [x] add IR order in codegen.h
+ - [x] check it's implemented correctly
