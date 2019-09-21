@@ -84,6 +84,7 @@ Value *BinaryAST::codegen() {
         // TODO 3.1: '<'を実装してみよう
         // '<'のcodegenを実装して下さい。その際、以下のIRBuilderのメソッドが使えます。
         // CreateICmp: https://llvm.org/doxygen/classllvm_1_1IRBuilder.html#a103d309fa238e186311cbeb961b5bcf4
+        // llvm::CmpInst::ICMP_SLT: https://llvm.org/doxygen/classllvm_1_1CmpInst.html#a283f9a5d4d843d20c40bb4d3e364bb05
         // CreateIntCast: https://llvm.org/doxygen/classllvm_1_1IRBuilder.html#a5bb25de40672dedc0d65e608e4b78e2f
         // CreateICmpの返り値がi1(1bit)なので、CreateIntCastはそれをint64にcastするのに用います。
         default:
@@ -153,8 +154,9 @@ Value *IfExprAST::codegen() {
     if (!CondV)
         return nullptr;
 
-    // CondVはint64なので、int64の0とequalかどうか判定することでCondVをbool型にする。
-    CondV = Builder.CreateICmpEQ(
+    // CondVはint64でtrueなら0以外、falseなら0が入っているため、CreateICmpNEを用いて
+    // CondVが0(false)とnot-equalかどうか判定し、CondVをbool型にする。
+    CondV = Builder.CreateICmpNE(
             CondV, ConstantInt::get(Context, APInt(64, 0)), "ifcond");
     // if文を呼んでいる関数の名前
     Function *ParentFunc = Builder.GetInsertBlock()->getParent();
@@ -182,6 +184,7 @@ Value *IfExprAST::codegen() {
 
     // TODO 3.4: "else"ブロックのcodegenを実装しよう
     // "then"ブロックを参考に、"else"ブロックのcodegenを実装して下さい。
+    // 注意: 20行下のコメントアウトを外して下さい。
     ParentFunc->getBasicBlockList().push_back(ElseBB);
 
     // "ifcont"ブロックのcodegen
@@ -198,8 +201,8 @@ Value *IfExprAST::codegen() {
         Builder.CreatePHI(Type::getInt64Ty(Context), 2, "iftmp");
 
     PN->addIncoming(ThenV, ThenBB);
-    // TODO 3.4を実装したらコメントアウトを外して下さい。
-    //PN->addIncoming(ElseV, ElseBB);
+    // TODO 3.4:を実装したらコメントアウトを外して下さい。
+    // PN->addIncoming(ElseV, ElseBB);
     return PN;
 }
 
