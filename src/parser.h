@@ -223,7 +223,6 @@ static std::unique_ptr<ExprAST> ParseIdentifierExpr() {
 }
 
 static std::unique_ptr<ExprAST> ParseIfExpr() {
-    return nullptr;
     // TODO 3.3: If文のパーシングを実装してみよう。
     // 1. ParseIfExprに来るということは現在のトークンが"if"なので、
     // トークンを次に進めます。

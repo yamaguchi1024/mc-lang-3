@@ -50,6 +50,8 @@ class Lexer {
 		  return tok_then;
 		else if (identifierStr == "else")
 		  return tok_else;
+
+		setIdentifier(identifierStr);
                 return tok_identifier;
             }
 
