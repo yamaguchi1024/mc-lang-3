@@ -44,6 +44,12 @@ class Lexer {
                     return tok_def;
                 // TODO 3.2: "if", "then", "else"をトークナイズしてみよう
                 // 上記の"def"の例を参考に、3つの予約語をトークナイズして下さい。
+		else if (identifierStr == "if")
+		  return tok_id;
+		else if (identifierStr == "then")
+		  return tok_then;
+		else if (identifierStr == "else")
+		  return tok_else;
                 return tok_identifier;
             }
 
