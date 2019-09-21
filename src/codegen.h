@@ -80,7 +80,11 @@ Value *BinaryAST::codegen() {
     case '-':
       return Builder.CreateSub(L, R, "subtmp");
     case '*':
-      return Builder.CreateMul(L, R, "multmp");
+      return Builder.CreateMul(L, R, "multmp");  
+    case '/':
+      // ref
+      // https://llvm.org/doxygen/Value_8h_source.html#l00245
+      return Builder.CreateUDiv(L, R, "divtmp");
       // TODO 3.1: '<'を実装してみよう
       // '<'のcodegenを実装して下さい。その際、以下のIRBuilderのメソッドが使えます。
       // CreateICmp: https://llvm.org/doxygen/classllvm_1_1IRBuilder.html#a103d309fa238e186311cbeb961b5bcf4
