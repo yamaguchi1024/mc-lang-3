@@ -298,6 +298,21 @@ static std::unique_ptr<ExprAST> ParseBinOpRHS(int CallerPrec,
         // 4. 次のトークン(二項演算子の右のexpression)に進む。
         getNextToken();
 
+	// for <= & >=
+	if (CurTok == '=') {
+	  getNextToken();
+	  switch(BinOp) {
+	  case '<':
+	    BinOp = static_cast<int>(OperatorEnum::le);
+	    break;
+	  case '>':
+	    BinOp = static_cast<int>(OperatorEnum::ge);
+	    break;
+	  default:
+	    return LogError(("Unknown Operator" + std::to_string(BinOp) + "=").c_str());
+	  }
+	}
+
         // 5. 二項演算子の右のexpressionをパースする。 e.g. auto RHS = ParsePrimary();
         auto RHS = ParsePrimary();
         if (!RHS)
