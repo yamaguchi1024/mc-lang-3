@@ -98,6 +98,20 @@ namespace {
 
         Value *codegen() override;
     };
+
+    /// ForExprAST - for/inのための式クラス。
+    class ForExprAST : public ExprAST {
+        std::string VarName;
+        std::unique_ptr<ExprAST> Start, End, Step, Body;
+
+        public:
+        ForExprAST(const std::string &VarName, std::unique_ptr<ExprAST> Start, std::unique_ptr<ExprAST> End,std::unique_ptr<ExprAST> Step, std::unique_ptr<ExprAST> Body)
+        : VarName(VarName), Start(std::move(Start)), End(std::move(End)), Step(std::move(Step)), Body(std::move(Body)) {}
+
+        Value *codegen() override;
+        //virtual Value *codegen();
+    };
+
 } // end anonymous namespace
 
 //===----------------------------------------------------------------------===//
@@ -235,6 +249,50 @@ static std::unique_ptr<ExprAST> ParseIdentifierExpr() {
     return llvm::make_unique<CallExprAST>(IdName, std::move(args));
 }
 
+
+  static std::unique_ptr<ExprAST> ParseForExpr() {
+    getNextToken();  // eat for
+    if (CurTok != tok_identifier)
+      return nullptr;
+ 
+      std::string IdName = lexer.getIdentifier();
+      getNextToken();  // eat i
+ 
+      if (CurTok != '=')
+        return nullptr;
+      getNextToken();  // eat =
+ 
+      // for i = 1,10
+      auto StartV = ParseExpression();
+      if (StartV == 0) return 0;
+      if (CurTok != ',')
+        return nullptr;
+      getNextToken();
+ 
+      auto EndV = ParseExpression();
+      if (EndV == 0) return 0;
+ 
+      // for i = 1,10,2 in
+      std::unique_ptr<ExprAST> StepV = 0;
+      if (CurTok == ',') {
+        getNextToken();
+        StepV = ParseExpression();
+        if (StepV == 0) return 0;
+       }
+ 
+      if (CurTok != tok_in)
+        return nullptr;
+      getNextToken();  // eat in
+
+      auto BodyV = ParseExpression();
+      if (BodyV == 0) return 0;
+ 
+      
+      //return llvm::make_unique<ForExprAST>(IdName, std::move(StartV),std::move(EndV),std::move(StepV), std::move(BodyV));
+      std::unique_ptr<ExprAST> ForExpAST (new ForExprAST(IdName, std::move(StartV), std::move(EndV), std::move(StepV), std::move(BodyV)));
+      return ForExpAST;
+}
+
 static std::unique_ptr<ExprAST> ParseIfExpr() {
     // TODO 3.3: If文のパーシングを実装してみよう。
     // 1. ParseIfExprに来るということは現在のトークンが"if"なので、
@@ -281,6 +339,8 @@ static std::unique_ptr<ExprAST> ParsePrimary() {
             return ParseIfExpr();
         case '-':
             return ParseNumberNeg();
+        case tok_for:
+            return ParseForExpr();
         //case '.':
           //  return ParseNumberDouble();
     }

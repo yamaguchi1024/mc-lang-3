@@ -1,11 +1,11 @@
 #include <iostream>
 
 extern "C" {
-    int fib(int);
+    double fib(double);
 }
 
 int main() {
-    std::cout << "Call fib with 10: " << fib(10) << std::endl;
+    std::cout << "Call fib with 10: " << fib(10)  << std::endl;
 
     return 0;
 }

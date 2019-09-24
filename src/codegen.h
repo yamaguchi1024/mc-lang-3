@@ -163,6 +163,52 @@ Function *FunctionAST::codegen() {
     return nullptr;
 }
 
+Value *ForExprAST::codegen() {
+  Value *StartVal = Start->codegen();
+  if (!StartVal) return 0;
+  Function *TheFunction = Builder.GetInsertBlock()->getParent();
+  BasicBlock *PreheaderBB = Builder.GetInsertBlock();
+  BasicBlock *LoopBB = BasicBlock::Create(Context, "loop", TheFunction);
+  Builder.CreateBr(LoopBB);
+  Builder.SetInsertPoint(LoopBB);
+
+  PHINode *Variable = Builder.CreatePHI(Type::getDoubleTy(Context), 2, VarName);
+
+  Variable->addIncoming(StartVal, PreheaderBB);
+  Value *OldVal = NamedValues[VarName];
+
+  NamedValues[VarName] = Variable;
+  if (Body->codegen() == 0)
+    return 0;
+
+  Value *StepVal;
+  if (Step) {
+    StepVal = Step->codegen();
+    if (!StepVal) return nullptr;
+  } else {
+  StepVal = ConstantFP::get(Context, APFloat(1.0));
+  }
+  Value *NextVar = Builder.CreateFAdd(Variable, StepVal, "nextvar");
+  Value *EndCond = End->codegen();
+  if (!EndCond) return nullptr;
+
+  EndCond = Builder.CreateFCmpONE(EndCond,ConstantFP::get(Context, APFloat(0.0)),"loopcond");
+  BasicBlock *LoopEndBB = Builder.GetInsertBlock();
+  BasicBlock *AfterBB = BasicBlock::Create(Context, "afterloop", TheFunction);
+
+  Builder.CreateCondBr(EndCond, LoopBB, AfterBB);
+  Builder.SetInsertPoint(AfterBB);
+  Variable->addIncoming(NextVar, LoopEndBB);
+
+  if (OldVal)
+    NamedValues[VarName] = OldVal;
+  else
+    NamedValues.erase(VarName);
+
+  return Constant::getNullValue(Type::getDoubleTy(Context));
+}
+
+
 Value *IfExprAST::codegen() {
     // if x < 5 then x + 3 else x - 5;
     // というコードが入力だと考える。
