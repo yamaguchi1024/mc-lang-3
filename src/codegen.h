@@ -8,6 +8,7 @@
 
 // https://llvm.org/doxygen/LLVMContext_8h_source.html
 static LLVMContext Context;
+//static LLVMDoubleTypeInContext Context;
 // https://llvm.org/doxygen/classllvm_1_1IRBuilder.html
 // LLVM IRを生成するためのインターフェース
 static IRBuilder<> Builder(Context);
@@ -78,13 +79,13 @@ Value *BinaryAST::codegen() {
     switch (Op) {
         case '+':
             // LLVM IR Builerを使い、この二項演算のIRを作る
-            return Builder.CreateAdd(L, R, "addtmp");
+            return Builder.CreateFAdd(L, R, "addtmp");
             // TODO 1.7: '-'と'*'に対してIRを作ってみよう
             // 上の行とhttps://llvm.org/doxygen/classllvm_1_1IRBuilder.htmlを参考のこと
         case '-':
-            return Builder.CreateSub(L, R, "subtmp");
+            return Builder.CreateFSub(L, R, "subtmp");
         case '*':
-            return Builder.CreateMul(L, R, "multmp");
+            return Builder.CreateFMul(L, R, "multmp");
         case '<':
             return Builder.CreateIntCast(Builder.CreateICmp(llvm::CmpInst::ICMP_SLT, L, R, "slttmp"), llvm::Type::getInt64Ty(Context),true);
 
