@@ -19,10 +19,10 @@ namespace {
     // NumberAST - `5`や`2`等の数値リテラルを表すクラス
     class NumberAST : public ExprAST {
         // 実際に数値の値を保持する変数
-        int Val;
+        double Val;
 
         public:
-        NumberAST(int Val) : Val(Val) {}
+        NumberAST(double Val) : Val(Val) {}
         Value *codegen() override;
     };
 
@@ -149,6 +149,8 @@ static std::unique_ptr<ExprAST> ParseNumberExpr() {
     return std::move(Result);
 }
 
+//static std::unique_ptr<ExprAST> ParseNumberDouble(){  
+//}
 static std::unique_ptr<ExprAST> ParseNumberNeg(){
     getNextToken();
     if(CurTok != tok_number){
@@ -279,6 +281,8 @@ static std::unique_ptr<ExprAST> ParsePrimary() {
             return ParseIfExpr();
         case '-':
             return ParseNumberNeg();
+        //case '.':
+          //  return ParseNumberDouble();
     }
 }
 

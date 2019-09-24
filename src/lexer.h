@@ -73,6 +73,9 @@ class Lexer {
             if (isdigit(lastChar)) {
                 std::string numStr = "";
                 numStr += lastChar;
+                if((lastChar = getNextChar(iFile))=='.'){
+                    numStr += lastChar;
+                }
                 while (isdigit(lastChar = getNextChar(iFile)))
                     numStr += lastChar;
                 setnumVal(strtod(numStr.c_str(), nullptr));
@@ -108,8 +111,8 @@ class Lexer {
         }
 
         // 数字を格納するnumValのgetter, setter
-        int getNumVal() { return numVal; }
-        void setnumVal(int numval) { numVal = numval; }
+        double getNumVal() { return numVal; }
+        void setnumVal(double numval) { numVal = numval; }
 
         // 識別子を格納するIdentifierStrのgetter, setter
         std::string getIdentifier() { return identifierStr; }
@@ -119,7 +122,7 @@ class Lexer {
 
             private:
         std::ifstream iFile;
-        uint64_t numVal;
+        double numVal;
         // tok_identifierなら文字を入れる
         std::string identifierStr;
         static char getNextChar(std::ifstream &is) {

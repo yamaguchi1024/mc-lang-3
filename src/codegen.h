@@ -84,7 +84,8 @@ Value *BinaryAST::codegen() {
         case '<':
             return Builder.CreateIntCast(Builder.CreateICmp(llvm::CmpInst::ICMP_SLT, L, R, "slttmp"), llvm::Type::getInt64Ty(Context),true);
 
-
+       // case '.': 
+         //   return 
         // TODO 3.1: '<'を実装してみよう
         // '<'のcodegenを実装して下さい。その際、以下のIRBuilderのメソッドが使えます。
         // CreateICmp: https://llvm.org/doxygen/classllvm_1_1IRBuilder.html#a103d309fa238e186311cbeb961b5bcf4
