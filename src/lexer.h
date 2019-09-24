@@ -79,7 +79,6 @@ class Lexer {
                 while (isdigit(lastChar = getNextChar(iFile)))
                     numStr += lastChar;
                 setnumVal(strtod(numStr.c_str(), nullptr));
-                printf("%e\n",strtod(numStr.c_str(), nullptr));
                 return tok_number;
             }
 
