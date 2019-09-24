@@ -21,7 +21,11 @@ static std::map<std::string, Value *> NamedValues;
 // llvm::Valueという、LLVM IRのオブジェクトでありFunctionやModuleなどを構成するクラスを使います
 Value *NumberAST::codegen() {
     // 64bit整数型のValueを返す
-    return ConstantInt::get(Context, APInt(64, Val, true));
+    if ((double)Val == Val){
+        return ConstantFP::get(Context, llvm::APFloat(Val));
+    }else{
+        return ConstantInt::get(Context, APInt(64, Val, true));
+    }
 }
 
 Value *LogErrorV(const char *str) {
@@ -99,9 +103,10 @@ Value *BinaryAST::codegen() {
 
 Function *PrototypeAST::codegen() {
     // MC言語では変数の型も関数の返り値もintの為、関数の返り値をInt64にする。
-    std::vector<Type *> prototype(args.size(), Type::getInt64Ty(Context));
-    FunctionType *FT =
-        FunctionType::get(Type::getInt64Ty(Context), prototype, false);
+    //std::vector<Type *> prototype(args.size(), Type::getInt64Ty(Context));
+    std::vector<Type *> prototype(args.size(), Type::getDoubleTy(Context));
+   // FunctionType *FT = FunctionType::get(Type::getInt64Ty(Context), prototype, false);
+    FunctionType *FT = FunctionType::get(Type::getDoubleTy(Context), prototype, false);
     // https://llvm.org/doxygen/classllvm_1_1Function.html
     // llvm::Functionは関数のIRを表現するクラス
     Function *F =
