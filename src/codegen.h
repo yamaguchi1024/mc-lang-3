@@ -22,11 +22,11 @@ static std::map<std::string, Value *> NamedValues;
 // llvm::Valueという、LLVM IRのオブジェクトでありFunctionやModuleなどを構成するクラスを使います
 Value *NumberAST::codegen() {
     // 64bit整数型のValueを返す
-    if ((double)Val == Val){
-        return ConstantFP::get(Context, llvm::APFloat(Val));
-    }else{
-        return ConstantInt::get(Context, APInt(64, Val, true));
-    }
+   // if ((double)Val == Val){
+      return ConstantFP::get(Context, llvm::APFloat(Val));
+    //}else{
+       // return ConstantInt::get(Context, APInt(64, Val, true));
+    //}
 }
 
 Value *LogErrorV(const char *str) {
@@ -86,8 +86,15 @@ Value *BinaryAST::codegen() {
             return Builder.CreateFSub(L, R, "subtmp");
         case '*':
             return Builder.CreateFMul(L, R, "multmp");
+        case '/':
+            return Builder.CreateFDiv(L, R, "divtmp");
         case '<':
-            return Builder.CreateIntCast(Builder.CreateICmp(llvm::CmpInst::ICMP_SLT, L, R, "slttmp"), llvm::Type::getInt64Ty(Context),true);
+            L = Builder.CreateFCmpULT(L, R, "cmptmp");
+            return Builder.CreateUIToFP(L, Type::getDoubleTy(Context),"booltmp");
+            //return Builder.CreateFPCast(Builder.CreateFCmpULT(L, R, "slttmp"),
+            //                            Type::getDoubleTy(Context),
+            //                            "booltmp");
+//return Builder.CreateIntCast(Builder.CreateICmp(llvm::CmpInst::ICMP_SLT, L, R, "slttmp"), llvm::Type::getInt64Ty(Context),true);
 
        // case '.': 
          //   return 
@@ -167,8 +174,9 @@ Value *IfExprAST::codegen() {
 
     // CondVはint64でtrueなら0以外、falseなら0が入っているため、CreateICmpNEを用いて
     // CondVが0(false)とnot-equalかどうか判定し、CondVをbool型にする。
-    CondV = Builder.CreateICmpNE(
-            CondV, ConstantInt::get(Context, APInt(64, 0)), "ifcond");
+    CondV = Builder.CreateFCmpONE(CondV,ConstantFP::get(Context, APFloat(0.0)),"ifcond");
+    //CondV = Builder.CreateICmpNE(
+            //CondV, ConstantInt::get(Context, APInt(64,0)), "ifcond");
     // if文を呼んでいる関数の名前
     Function *ParentFunc = Builder.GetInsertBlock()->getParent();
 
@@ -216,7 +224,7 @@ Value *IfExprAST::codegen() {
     // 値を上書きすることが出来ません。従って、このように実行時にコントロールフローの
     // 値を選択する機能が必要です。
     PHINode *PN =
-        Builder.CreatePHI(Type::getInt64Ty(Context), 2, "iftmp");
+        Builder.CreatePHI(Type::getDoubleTy(Context), 2, "iftmp");
 
     PN->addIncoming(ThenV, ThenBB);
     // TODO 3.4:を実装したらコメントアウトを外して下さい。

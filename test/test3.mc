@@ -1,2 +1,2 @@
 #over 64, it become 16 shin number
--6.55151 + 17.0
+-6.5 + 17.15135
