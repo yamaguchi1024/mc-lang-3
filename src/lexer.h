@@ -73,11 +73,13 @@ class Lexer {
             if (isdigit(lastChar)) {
                 std::string numStr = "";
                 numStr += lastChar;
-                if((lastChar = getNextChar(iFile))=='.'){
-                    numStr += lastChar;
-                }
                 while (isdigit(lastChar = getNextChar(iFile)))
                     numStr += lastChar;
+                if(lastChar == '.'){
+                    numStr += lastChar;
+                    while (isdigit(lastChar = getNextChar(iFile)))
+                        numStr += lastChar;
+                }
                 setnumVal(strtod(numStr.c_str(), nullptr));
                 return tok_number;
             }
