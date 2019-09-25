@@ -252,7 +252,6 @@ static std::unique_ptr<ExprAST> ParseIdentifierExpr() {
     return llvm::make_unique<CallExprAST>(IdName, std::move(args));
 }
 
-
   static std::unique_ptr<ExprAST> ParseForExpr() {
     getNextToken();  // eat for
     if (CurTok != tok_identifier)
@@ -413,15 +412,16 @@ static std::unique_ptr<PrototypeAST> ParsePrototype() {
         return LogErrorP("Expected function name in prototype");
 
     std::string FnName = lexer.getIdentifier();;
-    getNextToken();
+    getNextToken();// eat function name
 
     if (CurTok != '(')
         return LogErrorP("Expected '(' in prototype");
-
+    getNextToken();//eat (
     std::vector<std::string> ArgNames;
-    while (getNextToken() == tok_identifier) {
+    while (CurTok == tok_identifier) {
         std::string curArg = lexer.getIdentifier();
         ArgNames.push_back(curArg);
+        getNextToken();
     }
     if (CurTok != ')')
         return LogErrorP("Expected ')' in prototype");
@@ -462,3 +462,9 @@ static std::unique_ptr<FunctionAST> ParseTopLevelExpr() {
     }
     return nullptr;
 }
+
+  static std::unique_ptr<PrototypeAST> ParseExtern() {
+    getNextToken(); // eat extern.
+    return ParsePrototype();
+  }
+

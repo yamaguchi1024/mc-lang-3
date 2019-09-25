@@ -20,7 +20,8 @@ enum Token {
     tok_in = -9,
     tok_extern = -10,
     tok_int = -11,
-    tok_double = -12
+    tok_double = -12,
+    tok_var = -13
 };
 
 class Lexer {

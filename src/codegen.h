@@ -17,6 +17,9 @@ static IRBuilder<> Builder(Context);
 static std::unique_ptr<Module> myModule;
 // 変数名とllvm::Valueのマップを保持する
 static std::map<std::string, Value *> NamedValues;
+static std::map<std::string, std::unique_ptr<PrototypeAST>> FunctionProtos;
+
+
 
 // https://llvm.org/doxygen/classllvm_1_1Value.html
 // llvm::Valueという、LLVM IRのオブジェクトでありFunctionやModuleなどを構成するクラスを使います
@@ -308,6 +311,20 @@ static void HandleDefinition() {
     }
 }
 
+static void HandleExtern() {
+  if (auto ProtoAST = ParseExtern()) {
+    if (auto *FnIR = ProtoAST->codegen()) {
+      fprintf(stderr, "Read extern: ");
+      FnIR->print(errs());
+      fprintf(stderr, "\n");
+      FunctionProtos[ProtoAST->getFunctionName()] = std::move(ProtoAST);
+    }
+  } else {
+    // Skip token for error recovery.
+    getNextToken();
+  }
+}
+
 // その名の通りtop level expressionをcodegenします。例えば、「2+1;3+3;」というファイルが
 // 入力だった場合、この関数は最初の「2+1」をcodegenして返ります。(そしてMainLoopからまだ呼び出されます)
 static void HandleTopLevelExpression() {
@@ -338,6 +355,8 @@ static void MainLoop() {
             case ';': // ';'で始まった場合、無視します
                 getNextToken();
                 break;
+            case tok_extern:
+                HandleExtern();
             default:
                 HandleTopLevelExpression();
                 break;
