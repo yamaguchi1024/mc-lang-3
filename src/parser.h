@@ -21,6 +21,7 @@ namespace {
         // 実際に数値の値を保持する変数
         double Val;
 
+//ここに型の概念を追加する？
         public:
         NumberAST(double Val) : Val(Val) {}
         Value *codegen() override;
@@ -42,10 +43,12 @@ namespace {
     // VariableExprAST - 変数の名前を表すクラス
     class VariableExprAST : public ExprAST {
         std::string variableName;
-
+        
+//ここに型の概念を追加する？
         public:
         VariableExprAST(const std::string &variableName) : variableName(variableName) {}
         Value *codegen() override;
+        const std::string &getName() const { return variableName; }
     };
 
     // CallExprAST - 関数呼び出しを表すクラス
@@ -292,7 +295,16 @@ static std::unique_ptr<ExprAST> ParseIdentifierExpr() {
       std::unique_ptr<ExprAST> ForExpAST (new ForExprAST(IdName, std::move(StartV), std::move(EndV), std::move(StepV), std::move(BodyV)));
       return ForExpAST;
 }
-
+//intの型の変数を定義する
+static std::unique_ptr<ExprAST> ParseIntVariable(){
+   getNextToken();//eat int
+   return nullptr;
+}
+//doubleの型の変数を定義する
+static std::unique_ptr<ExprAST> ParseDoubleVariable(){
+   getNextToken();//eat double
+   return nullptr;
+}
 static std::unique_ptr<ExprAST> ParseIfExpr() {
     // TODO 3.3: If文のパーシングを実装してみよう。
     // 1. ParseIfExprに来るということは現在のトークンが"if"なので、
@@ -341,6 +353,10 @@ static std::unique_ptr<ExprAST> ParsePrimary() {
             return ParseNumberNeg();
         case tok_for:
             return ParseForExpr();
+        case tok_int:
+            return ParseIntVariable();
+        case tok_double:
+            return ParseDoubleVariable();
         //case '.':
           //  return ParseNumberDouble();
     }

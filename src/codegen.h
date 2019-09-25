@@ -71,11 +71,23 @@ Value *CallExprAST::codegen() {
 
 Value *BinaryAST::codegen() {
     // 二項演算子の両方の引数をllvm::Valueにする。
+    if(Op == '='){
+        VariableExprAST *LHSE = dynamic_cast<VariableExprAST*>(LHS.get());
+        if (!LHSE)
+          return nullptr;
+        Value *Val = RHS->codegen();
+        if (!Val)
+          return nullptr;
+        Value *Variable = NamedValues[LHSE->getName()];
+        if (!Variable)
+          return LogErrorV("Unknown variable name");
+        Builder.CreateStore(Val, Variable);
+        return Val;
+     }
     Value *L = LHS->codegen();
     Value *R = RHS->codegen();
     if (!L || !R)
         return nullptr;
-
     switch (Op) {
         case '+':
             // LLVM IR Builerを使い、この二項演算のIRを作る
@@ -95,7 +107,7 @@ Value *BinaryAST::codegen() {
             //                            Type::getDoubleTy(Context),
             //                            "booltmp");
 //return Builder.CreateIntCast(Builder.CreateICmp(llvm::CmpInst::ICMP_SLT, L, R, "slttmp"), llvm::Type::getInt64Ty(Context),true);
-
+            
        // case '.': 
          //   return 
         // TODO 3.1: '<'を実装してみよう
