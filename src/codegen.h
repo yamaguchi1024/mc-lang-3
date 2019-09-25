@@ -17,6 +17,7 @@ static IRBuilder<> Builder(Context);
 static std::unique_ptr<Module> myModule;
 // 変数名とllvm::Valueのマップを保持する
 static std::map<std::string, Value *> NamedValues;
+static std::map<std::string, AllocaInst*> NamedValues1;
 static std::map<std::string, std::unique_ptr<PrototypeAST>> FunctionProtos;
 
 
@@ -35,6 +36,15 @@ Value *NumberAST::codegen() {
 Value *LogErrorV(const char *str) {
     LogError(str);
     return nullptr;
+}
+
+/// CreateEntryBlockAlloca - Create an alloca instruction in the entry block of
+/// the function.  This is used for mutable variables etc.
+static AllocaInst *CreateEntryBlockAlloca(Function *TheFunction,
+                                          const std::string &VarName) {
+  IRBuilder<> TmpB(&TheFunction->getEntryBlock(),
+                   TheFunction->getEntryBlock().begin());
+  return TmpB.CreateAlloca(Type::getDoubleTy(Context), nullptr, VarName);
 }
 
 // TODO 2.4: 引数のcodegenを実装してみよう
@@ -75,7 +85,7 @@ Value *CallExprAST::codegen() {
 Value *BinaryAST::codegen() {
     // 二項演算子の両方の引数をllvm::Valueにする。
     if(Op == '='){
-        VariableExprAST *LHSE = dynamic_cast<VariableExprAST*>(LHS.get());
+        VariableExprAST *LHSE = static_cast<VariableExprAST*>(LHS.get());
         if (!LHSE)
           return nullptr;
         Value *Val = RHS->codegen();
@@ -224,6 +234,44 @@ Value *ForExprAST::codegen() {
 }
 
 
+Value *VarExprAST::codegen() {
+  std::vector<AllocaInst *> OldBindings;
+  Function *TheFunction = Builder.GetInsertBlock()->getParent();
+  // Register all variables and emit their initializer.
+  for (unsigned i = 0, e = VarNames.size(); i != e; ++i) {
+      const std::string &VarName = VarNames[i].first;
+      ExprAST *Init = VarNames[i].second.get();
+       // Emit the initializer before adding the variable to scope, this prevents
+     // the initializer from referencing the variable itself, and permits stuff
+     // like this:
+     //  var a = 1 in
+     //    var a = a in ...   # refers to outer 'a'.
+      Value *InitVal;
+      if (Init) {
+         InitVal = Init->codegen();
+         if (!InitVal)
+            return nullptr;
+      } else { // If not specified, use 0.0.
+         InitVal = ConstantFP::get(Context, APFloat(0.0));
+      }
+      AllocaInst *Alloca = CreateEntryBlockAlloca(TheFunction, VarName);
+      Builder.CreateStore(InitVal, Alloca);
+      // Remember the old variable binding so that we can restore the binding when
+      // we unrecurse.
+      OldBindings.push_back(NamedValues1[VarName]);
+      // Remember this binding.
+      NamedValues[VarName] = Alloca;
+    }
+     // Codegen the body, now that all vars are in scope.
+    Value *BodyVal = Body->codegen();
+    if (!BodyVal)
+        return nullptr;
+    // Pop all our variables from scope.
+    for (unsigned i = 0, e = VarNames.size(); i != e; ++i)
+        NamedValues[VarNames[i].first] = OldBindings[i];
+  // Return the body computation.
+    return BodyVal;
+}
 Value *IfExprAST::codegen() {
     // if x < 5 then x + 3 else x - 5;
     // というコードが入力だと考える。

@@ -66,6 +66,8 @@ class Lexer {
                   return tok_int;
                 if (identifierStr == "double")
                   return tok_double;
+                if (identifierStr == "var")
+                  return tok_var;
 
                 return tok_identifier;
             }

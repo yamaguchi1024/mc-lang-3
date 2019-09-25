@@ -43,9 +43,10 @@ namespace {
     // VariableExprAST - 変数の名前を表すクラス
     class VariableExprAST : public ExprAST {
         std::string variableName;
-        
+        //std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> variableName;std::unique_ptr<ExprAST> Body;
 //ここに型の概念を追加する？
         public:
+        //VariableExprAST(std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> variableName,std::unique_ptr<ExprAST> Body) : variableName(std::move(variableName)), Body(std::move(Body)) {}
         VariableExprAST(const std::string &variableName) : variableName(variableName) {}
         Value *codegen() override;
         const std::string &getName() const { return variableName; }
@@ -114,6 +115,16 @@ namespace {
         Value *codegen() override;
         //virtual Value *codegen();
     };
+
+    class VarExprAST : public ExprAST {
+        std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> VarNames;
+        std::unique_ptr<ExprAST> Body;
+
+        public:
+        VarExprAST(std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> VarNames,std::unique_ptr<ExprAST> Body)
+        : VarNames(std::move(VarNames)), Body(std::move(Body)) {}
+        Value *codegen() override;
+};
 
 } // end anonymous namespace
 
@@ -294,6 +305,51 @@ static std::unique_ptr<ExprAST> ParseIdentifierExpr() {
       std::unique_ptr<ExprAST> ForExpAST (new ForExprAST(IdName, std::move(StartV), std::move(EndV), std::move(StepV), std::move(BodyV)));
       return ForExpAST;
 }
+
+
+static std::unique_ptr<ExprAST> ParseVarExpr() {
+    getNextToken();  // eat the var.
+
+    std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> VarNames;
+
+    // At least one variable name is required.
+    if (CurTok != tok_identifier)
+      return LogError("expected identifier after var");
+    while (1) {
+      std::string Name = lexer.getIdentifier();
+      getNextToken();  // eat identifier.
+      // Read the optional initializer.
+      std::unique_ptr<ExprAST> Init;
+
+      if (CurTok == '=') {
+          getNextToken(); // eat the '='.
+          Init = ParseExpression();
+          if (!Init) return nullptr;
+        }
+
+      VarNames.push_back(std::make_pair(Name, std::move(Init)));
+
+      // End of var list, exit loop.
+      if (CurTok != ',') break;
+      getNextToken(); // eat the ','.
+
+      if (CurTok != tok_identifier)
+         return LogError("expected identifier list after var");
+     }
+
+        // At this point, we have to have 'in'.
+     if (CurTok != tok_in)
+         return LogError("expected 'in' keyword after 'var'");
+     getNextToken();  // eat 'in'.
+
+     auto Body = ParseExpression();
+     if (!Body)
+       return nullptr;
+
+     std::unique_ptr<ExprAST> VarExpAST(new VarExprAST(std::move(VarNames),std::move(Body)));
+     return VarExpAST;
+}
+
 //intの型の変数を定義する
 static std::unique_ptr<ExprAST> ParseIntVariable(){
    getNextToken();//eat int
@@ -356,6 +412,8 @@ static std::unique_ptr<ExprAST> ParsePrimary() {
             return ParseIntVariable();
         case tok_double:
             return ParseDoubleVariable();
+        case tok_var:
+            return ParseVarExpr();
         //case '.':
           //  return ParseNumberDouble();
     }
