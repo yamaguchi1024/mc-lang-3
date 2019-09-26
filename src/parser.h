@@ -20,10 +20,12 @@ namespace {
     class NumberAST : public ExprAST {
         // 実際に数値の値を保持する変数
         double Val;
+        int Val_i;
 
 //ここに型の概念を追加する？
         public:
         NumberAST(double Val) : Val(Val) {}
+        NumberAST(int Val_i) : Val_i(Val_i) {}
         Value *codegen() override;
     };
 
@@ -172,10 +174,9 @@ static std::unique_ptr<ExprAST> ParseExpression();
 // 数値リテラルをパースする関数。
 static std::unique_ptr<ExprAST> ParseNumberExpr() {
     // NumberASTのValにlexerからnumValを読んできて、セットする。
-    auto Result = llvm::make_unique<NumberAST>((double)lexer.getNumVal());
+    auto Result = llvm::make_unique<NumberAST>(lexer.getNumVal());
     if(std::isnan(lexer.getNumVal()))
         Result = llvm::make_unique<NumberAST>(lexer.getNumVal_i());
-       
     getNextToken(); // トークンを一個進めて、returnする。
     return std::move(Result);
 }
@@ -187,7 +188,7 @@ static std::unique_ptr<ExprAST> ParseNumberNeg(){
     if(CurTok != tok_number){
         return LogError("expected 'number' after the '-'");
     }else{
-        auto Result = llvm::make_unique<NumberAST>((double)-lexer.getNumVal());
+        auto Result = llvm::make_unique<NumberAST>(-lexer.getNumVal());
         if(std::isnan(lexer.getNumVal()))
             Result = llvm::make_unique<NumberAST>(-lexer.getNumVal_i());
         getNextToken();
@@ -455,7 +456,6 @@ static std::unique_ptr<ExprAST> ParseBinOpRHS(int CallerPrec,
             if (!RHS)
                 return nullptr;
         }
-
         // LHS, RHSをBinaryASTにしてLHSに代入する。
         LHS = llvm::make_unique<BinaryAST>(BinOp, std::move(LHS), std::move(RHS));
     }
