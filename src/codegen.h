@@ -16,8 +16,8 @@ static IRBuilder<> Builder(Context);
 // このModuleはC++ Moduleとは何の関係もなく、LLVM IRを格納するトップレベルオブジェクトです。
 static std::unique_ptr<Module> myModule;
 // 変数名とllvm::Valueのマップを保持する
-static std::map<std::string, Value *> NamedValues;
-static std::map<std::string, AllocaInst*> NamedValues1;
+//static std::map<std::string, Value *> NamedValues;
+static std::map<std::string, AllocaInst*> NamedValues;
 static std::map<std::string, std::unique_ptr<PrototypeAST>> FunctionProtos;
 
 
@@ -54,7 +54,7 @@ Value *VariableExprAST::codegen() {
     Value *V = NamedValues[variableName];
     if (!V)
         return LogErrorV("Unknown variable name");
-    return V;
+    return Builder.CreateLoad(V, variableName.c_str());
 }
 
 // TODO 2.5: 関数呼び出しのcodegenを実装してみよう
@@ -153,6 +153,7 @@ Function *PrototypeAST::codegen() {
     return F;
 }
 
+
 Function *FunctionAST::codegen() {
     // この関数が既にModuleに登録されているか確認
     Function *function = myModule->getFunction(proto->getFunctionName());
@@ -168,9 +169,16 @@ Function *FunctionAST::codegen() {
 
     // Record the function arguments in the NamedValues map.
     NamedValues.clear();
-    for (auto &Arg : function->args())
-        NamedValues[Arg.getName()] = &Arg;
+    for (auto &Arg : function->args()) {
+    // Create an alloca for this variable.
+        AllocaInst *Alloca = CreateEntryBlockAlloca(function, Arg.getName());
 
+    // Store the initial value into the alloca.
+        Builder.CreateStore(&Arg, Alloca);
+
+    // Add arguments to variable symbol table.
+        NamedValues[Arg.getName()] = Alloca;
+    }
     // 関数のbody(ExprASTから継承されたNumberASTかBinaryAST)をcodegenする
     if (Value *RetVal = body->codegen()) {
         // returnのIRを作る
@@ -189,41 +197,110 @@ Function *FunctionAST::codegen() {
 }
 
 Value *ForExprAST::codegen() {
-  Value *StartVal = Start->codegen();
-  if (!StartVal) return 0;
   Function *TheFunction = Builder.GetInsertBlock()->getParent();
-  BasicBlock *PreheaderBB = Builder.GetInsertBlock();
+
+  // Create an alloca for the variable in the entry block.
+  AllocaInst *Alloca = CreateEntryBlockAlloca(TheFunction, VarName);
+
+  // Emit the start code first, without 'variable' in scope.
+  Value *StartVal = Start->codegen();
+  if (!StartVal)
+    return nullptr;
+
+  // Store the value into the alloca.
+  Builder.CreateStore(StartVal, Alloca);
+
+  // Make the new basic block for the loop header, inserting after current
+  // block.
   BasicBlock *LoopBB = BasicBlock::Create(Context, "loop", TheFunction);
+
+  // Insert an explicit fall through from the current block to the LoopBB.
   Builder.CreateBr(LoopBB);
+
+  // Start insertion in LoopBB.
   Builder.SetInsertPoint(LoopBB);
 
-  PHINode *Variable = Builder.CreatePHI(Type::getDoubleTy(Context), 2, VarName);
+  // Within the loop, the variable is defined equal to the PHI node.  If it
+  // shadows an existing variable, we have to restore it, so save it now.
+  AllocaInst *OldVal = NamedValues[VarName];
+  NamedValues[VarName] = Alloca;
 
-  Variable->addIncoming(StartVal, PreheaderBB);
-  Value *OldVal = NamedValues[VarName];
+  // Emit the body of the loop.  This, like any other expr, can change the
+  // current BB.  Note that we ignore the value computed by the body, but don't
+  // allow an error.
+  if (!Body->codegen())
+    return nullptr;
 
-  NamedValues[VarName] = Variable;
-  if (Body->codegen() == 0)
-    return 0;
-
-  Value *StepVal;
+  // Emit the step value.
+  Value *StepVal = nullptr;
   if (Step) {
     StepVal = Step->codegen();
-    if (!StepVal) return nullptr;
+    if (!StepVal)
+      return nullptr;
   } else {
-  StepVal = ConstantFP::get(Context, APFloat(1.0));
+    // If not specified, use 1.0.
+    StepVal = ConstantFP::get(Context, APFloat(1.0));
   }
-  Value *NextVar = Builder.CreateFAdd(Variable, StepVal, "nextvar");
+
+  // Compute the end condition.
   Value *EndCond = End->codegen();
-  if (!EndCond) return nullptr;
+  if (!EndCond)
+    return nullptr;
 
-  EndCond = Builder.CreateFCmpONE(EndCond,ConstantFP::get(Context, APFloat(0.0)),"loopcond");
-  BasicBlock *LoopEndBB = Builder.GetInsertBlock();
-  BasicBlock *AfterBB = BasicBlock::Create(Context, "afterloop", TheFunction);
+  // Reload, increment, and restore the alloca.  This handles the case where
+  // the body of the loop mutates the variable.
+  Value *CurVar = Builder.CreateLoad(Alloca, VarName.c_str());
+  Value *NextVar = Builder.CreateFAdd(CurVar, StepVal, "nextvar");
+  Builder.CreateStore(NextVar, Alloca);
 
+  // Convert condition to a bool by comparing non-equal to 0.0.
+  EndCond = Builder.CreateFCmpONE(
+      EndCond, ConstantFP::get(Context, APFloat(0.0)), "loopcond");
+
+  // Create the "after loop" block and insert it.
+  BasicBlock *AfterBB =
+      BasicBlock::Create(Context, "afterloop", TheFunction);
+
+  // Insert the conditional branch into the end of LoopEndBB.
   Builder.CreateCondBr(EndCond, LoopBB, AfterBB);
+
+  // Any new code will be inserted in AfterBB.
   Builder.SetInsertPoint(AfterBB);
-  Variable->addIncoming(NextVar, LoopEndBB);
+//  Value *StartVal = Start->codegen();
+//  if (!StartVal) return 0;
+//  Function *TheFunction = Builder.GetInsertBlock()->getParent();
+//  BasicBlock *PreheaderBB = Builder.GetInsertBlock();
+//  BasicBlock *LoopBB = BasicBlock::Create(Context, "loop", TheFunction);
+//  Builder.CreateBr(LoopBB);
+//  Builder.SetInsertPoint(LoopBB);
+
+//  PHINode *Variable = Builder.CreatePHI(Type::getDoubleTy(Context), 2, VarName);
+
+//  Variable->addIncoming(StartVal, PreheaderBB);
+//  Value *OldVal = NamedValues[VarName];
+
+//  NamedValues[VarName] = Variable;
+//  if (Body->codegen() == 0)
+//    return 0;
+
+//  Value *StepVal;
+//  if (Step) {
+//    StepVal = Step->codegen();
+//    if (!StepVal) return nullptr;
+//  } else {
+//  StepVal = ConstantFP::get(Context, APFloat(1.0));
+//  }
+//  Value *NextVar = Builder.CreateFAdd(Variable, StepVal, "nextvar");
+//  Value *EndCond = End->codegen();
+//  if (!EndCond) return nullptr;
+
+//  EndCond = Builder.CreateFCmpONE(EndCond,ConstantFP::get(Context, APFloat(0.0)),"loopcond");
+//  BasicBlock *LoopEndBB = Builder.GetInsertBlock();
+//  BasicBlock *AfterBB = BasicBlock::Create(Context, "afterloop", TheFunction);
+
+//  Builder.CreateCondBr(EndCond, LoopBB, AfterBB);
+//  Builder.SetInsertPoint(AfterBB);
+//  Variable->addIncoming(NextVar, LoopEndBB);
 
   if (OldVal)
     NamedValues[VarName] = OldVal;
@@ -258,7 +335,7 @@ Value *VarExprAST::codegen() {
       Builder.CreateStore(InitVal, Alloca);
       // Remember the old variable binding so that we can restore the binding when
       // we unrecurse.
-      OldBindings.push_back(NamedValues1[VarName]);
+      OldBindings.push_back(NamedValues[VarName]);
       // Remember this binding.
       NamedValues[VarName] = Alloca;
     }
