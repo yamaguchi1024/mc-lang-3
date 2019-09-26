@@ -26,10 +26,10 @@ static std::map<std::string, std::unique_ptr<PrototypeAST>> FunctionProtos;
 // llvm::Valueという、LLVM IRのオブジェクトでありFunctionやModuleなどを構成するクラスを使います
 Value *NumberAST::codegen() {
     // 64bit整数型のValueを返す
-    if ((int)Val == Val){
-        return ConstantInt::get(Context, APInt(64, Val, true));
-    }else{
+    if (isd == 1){
         return ConstantFP::get(Context, llvm::APFloat(Val));
+    }else{
+        return ConstantInt::get(Context, APInt(64, Val_i, true));
     }
 }
 

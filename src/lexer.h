@@ -102,6 +102,7 @@ class Lexer {
                 }
                 if(isd==1){
                     setnumVal(strtod(numStr.c_str(), nullptr));
+                    setnumVal_i((double)NAN);
                 }else{
                     setnumVal(NAN);
                     setnumVal_i(strtod(numStr.c_str(), nullptr));

@@ -14,7 +14,7 @@ public:
 int main(void){
 	double var = 10;
   int va = 10;
-	cout << typeid(var).name() << endl;
+	cout << typeid(var) << endl;
 	cout << typeid(va).name() << endl;
 	Foo foo;
 	Foo foo2;
