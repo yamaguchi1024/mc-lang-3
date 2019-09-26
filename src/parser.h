@@ -172,7 +172,10 @@ static std::unique_ptr<ExprAST> ParseExpression();
 // 数値リテラルをパースする関数。
 static std::unique_ptr<ExprAST> ParseNumberExpr() {
     // NumberASTのValにlexerからnumValを読んできて、セットする。
-    auto Result = llvm::make_unique<NumberAST>(lexer.getNumVal());
+    auto Result = llvm::make_unique<NumberAST>((double)lexer.getNumVal());
+    if(std::isnan(lexer.getNumVal()))
+        Result = llvm::make_unique<NumberAST>(lexer.getNumVal_i());
+       
     getNextToken(); // トークンを一個進めて、returnする。
     return std::move(Result);
 }
@@ -184,7 +187,9 @@ static std::unique_ptr<ExprAST> ParseNumberNeg(){
     if(CurTok != tok_number){
         return LogError("expected 'number' after the '-'");
     }else{
-        auto Result = llvm::make_unique<NumberAST>(-lexer.getNumVal());
+        auto Result = llvm::make_unique<NumberAST>((double)-lexer.getNumVal());
+        if(std::isnan(lexer.getNumVal()))
+            Result = llvm::make_unique<NumberAST>(-lexer.getNumVal_i());
         getNextToken();
         return Result;
     }
@@ -308,13 +313,13 @@ static std::unique_ptr<ExprAST> ParseIdentifierExpr() {
 
 
 static std::unique_ptr<ExprAST> ParseVarExpr() {
-    getNextToken();  // eat the var.
+    getNextToken();  // eat the type.
 
     std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> VarNames;
 
     // At least one variable name is required.
     if (CurTok != tok_identifier)
-      return LogError("expected identifier after var");
+      return LogError("expected identifier after double");
     while (1) {
       std::string Name = lexer.getIdentifier();
       getNextToken();  // eat identifier.
@@ -350,11 +355,6 @@ static std::unique_ptr<ExprAST> ParseVarExpr() {
      return VarExpAST;
 }
 
-//intの型の変数を定義する
-static std::unique_ptr<ExprAST> ParseIntVariable(){
-   getNextToken();//eat int
-   return nullptr;
-}
 //doubleの型の変数を定義する
 static std::unique_ptr<ExprAST> ParseDoubleVariable(){
    getNextToken();//eat double
@@ -408,10 +408,10 @@ static std::unique_ptr<ExprAST> ParsePrimary() {
             return ParseNumberNeg();
         case tok_for:
             return ParseForExpr();
-        case tok_int:
-            return ParseIntVariable();
-        case tok_double:
-            return ParseDoubleVariable();
+//        case tok_int:
+//            return ParseIntVariable();
+//        case tok_double:
+//            return ParseDoubleVariable();
         case tok_var:
             return ParseVarExpr();
         //case '.':

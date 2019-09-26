@@ -26,11 +26,11 @@ static std::map<std::string, std::unique_ptr<PrototypeAST>> FunctionProtos;
 // llvm::Valueという、LLVM IRのオブジェクトでありFunctionやModuleなどを構成するクラスを使います
 Value *NumberAST::codegen() {
     // 64bit整数型のValueを返す
-   // if ((double)Val == Val){
-      return ConstantFP::get(Context, llvm::APFloat(Val));
-    //}else{
-       // return ConstantInt::get(Context, APInt(64, Val, true));
-    //}
+    if ((int)Val == Val){
+        return ConstantInt::get(Context, APInt(64, Val, true));
+    }else{
+        return ConstantFP::get(Context, llvm::APFloat(Val));
+    }
 }
 
 Value *LogErrorV(const char *str) {
@@ -101,36 +101,57 @@ Value *BinaryAST::codegen() {
     Value *R = RHS->codegen();
     if (!L || !R)
         return nullptr;
-    switch (Op) {
-        case '+':
-            // LLVM IR Builerを使い、この二項演算のIRを作る
-            return Builder.CreateFAdd(L, R, "addtmp");
-            // TODO 1.7: '-'と'*'に対してIRを作ってみよう
-            // 上の行とhttps://llvm.org/doxygen/classllvm_1_1IRBuilder.htmlを参考のこと
-        case '-':
-            return Builder.CreateFSub(L, R, "subtmp");
-        case '*':
-            return Builder.CreateFMul(L, R, "multmp");
-        case '/':
-            return Builder.CreateFDiv(L, R, "divtmp");
-        case '<':
-            L = Builder.CreateFCmpULT(L, R, "cmptmp");
-            return Builder.CreateUIToFP(L, Type::getDoubleTy(Context),"booltmp");
-            //return Builder.CreateFPCast(Builder.CreateFCmpULT(L, R, "slttmp"),
-            //                            Type::getDoubleTy(Context),
-            //                            "booltmp");
-//return Builder.CreateIntCast(Builder.CreateICmp(llvm::CmpInst::ICMP_SLT, L, R, "slttmp"), llvm::Type::getInt64Ty(Context),true);
-            
-       // case '.': 
-         //   return 
-        // TODO 3.1: '<'を実装してみよう
-        // '<'のcodegenを実装して下さい。その際、以下のIRBuilderのメソッドが使えます。
-        // CreateICmp: https://llvm.org/doxygen/classllvm_1_1IRBuilder.html#a103d309fa238e186311cbeb961b5bcf4
-        // llvm::CmpInst::ICMP_SLT: https://llvm.org/doxygen/classllvm_1_1CmpInst.html#a283f9a5d4d843d20c40bb4d3e364bb05
-        // CreateIntCast: https://llvm.org/doxygen/classllvm_1_1IRBuilder.html#a5bb25de40672dedc0d65e608e4b78e2f
-        // CreateICmpの返り値がi1(1bit)なので、CreateIntCastはそれをint64にcastするのに用います。
-        default:
-            return LogErrorV("invalid binary operator");
+    if(L->getType() != R->getType()){
+        return LogErrorV("operation type is not matched");
+    }
+    if(L->getType()->isFloatingPointTy()==0){
+        switch (Op) {
+            case '+':
+                // LLVM IR Builerを使い、この二項演算のIRを作る
+                return Builder.CreateAdd(L, R, "addtmp");
+                // TODO 1.7: '-'と'*'に対してIRを作ってみよう
+                // 上の行とhttps://llvm.org/doxygen/classllvm_1_1IRBuilder.htmlを参考のこと
+            case '-':
+                return Builder.CreateSub(L, R, "subtmp");
+            case '*':
+                return Builder.CreateMul(L, R, "multmp");
+            case '<':
+                return Builder.CreateIntCast(Builder.CreateICmp(llvm::CmpInst::ICMP_SLT, L, R, "slttmp"), llvm::Type::getInt64Ty(Context),true);
+            default:
+                return LogErrorV("invalid binary operator");
+    }
+    }else{
+        switch (Op) {
+            case '+':
+                // LLVM IR Builerを使い、この二項演算のIRを作る
+                return Builder.CreateFAdd(L, R, "addtmp");
+                // TODO 1.7: '-'と'*'に対してIRを作ってみよう
+                // 上の行とhttps://llvm.org/doxygen/classllvm_1_1IRBuilder.htmlを参考のこと
+            case '-':
+                return Builder.CreateFSub(L, R, "subtmp");
+            case '*':
+                return Builder.CreateFMul(L, R, "multmp");
+            case '/':
+                return Builder.CreateFDiv(L, R, "divtmp");
+            case '<':
+                L = Builder.CreateFCmpULT(L, R, "cmptmp");
+                return Builder.CreateUIToFP(L, Type::getDoubleTy(Context),"booltmp");
+                //return Builder.CreateFPCast(Builder.CreateFCmpULT(L, R, "slttmp"),
+                //                            Type::getDoubleTy(Context),
+                //                            "booltmp");
+    //return Builder.CreateIntCast(Builder.CreateICmp(llvm::CmpInst::ICMP_SLT, L, R, "slttmp"), llvm::Type::getInt64Ty(Context),true);
+                
+           // case '.':
+             //   return
+            // TODO 3.1: '<'を実装してみよう
+            // '<'のcodegenを実装して下さい。その際、以下のIRBuilderのメソッドが使えます。
+            // CreateICmp: https://llvm.org/doxygen/classllvm_1_1IRBuilder.html#a103d309fa238e186311cbeb961b5bcf4
+            // llvm::CmpInst::ICMP_SLT: https://llvm.org/doxygen/classllvm_1_1CmpInst.html#a283f9a5d4d843d20c40bb4d3e364bb05
+            // CreateIntCast: https://llvm.org/doxygen/classllvm_1_1IRBuilder.html#a5bb25de40672dedc0d65e608e4b78e2f
+            // CreateICmpの返り値がi1(1bit)なので、CreateIntCastはそれをint64にcastするのに用います。
+            default:
+                return LogErrorV("invalid binary operator");
+        }
     }
 }
 

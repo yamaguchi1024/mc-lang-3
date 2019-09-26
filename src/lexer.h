@@ -63,9 +63,9 @@ class Lexer {
                 if (identifierStr == "extern")
                   return tok_extern;
                 if (identifierStr == "int")
-                  return tok_int;
+                  return tok_var;
                 if (identifierStr == "double")
-                  return tok_double;
+                  return tok_var;
                 if (identifierStr == "var")
                   return tok_var;
 
@@ -89,16 +89,24 @@ class Lexer {
             //
             // ここに実装して下さい
             if (isdigit(lastChar)) {
+                bool isd = 0;
                 std::string numStr = "";
                 numStr += lastChar;
                 while (isdigit(lastChar = getNextChar(iFile)))
                     numStr += lastChar;
                 if(lastChar == '.'){
+                    isd = 1;
                     numStr += lastChar;
                     while (isdigit(lastChar = getNextChar(iFile)))
                         numStr += lastChar;
                 }
-                setnumVal(strtod(numStr.c_str(), nullptr));
+                if(isd==1){
+                    setnumVal(strtod(numStr.c_str(), nullptr));
+                    setnumVal_i(NAN);
+                }else{
+                    setnumVal(NAN);
+                    setnumVal_i(strtod(numStr.c_str(), nullptr));
+                }
                 return tok_number;
             }
 
@@ -132,7 +140,9 @@ class Lexer {
 
         // 数字を格納するnumValのgetter, setter
         double getNumVal() { return numVal; }
+        int getNumVal_i() {return numVal_i;}
         void setnumVal(double numval) { numVal = numval; }
+        void setnumVal_i(int numval) { numVal_i = numval; }
 
         // 識別子を格納するIdentifierStrのgetter, setter
         std::string getIdentifier() { return identifierStr; }
@@ -143,6 +153,7 @@ class Lexer {
             private:
         std::ifstream iFile;
         double numVal;
+        int numVal_i;
         // tok_identifierなら文字を入れる
         std::string identifierStr;
         static char getNextChar(std::ifstream &is) {
