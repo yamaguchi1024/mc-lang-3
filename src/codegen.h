@@ -87,6 +87,9 @@ Value *BinaryAST::codegen() {
         // llvm::CmpInst::ICMP_SLT: https://llvm.org/doxygen/classllvm_1_1CmpInst.html#a283f9a5d4d843d20c40bb4d3e364bb05
         // CreateIntCast: https://llvm.org/doxygen/classllvm_1_1IRBuilder.html#a5bb25de40672dedc0d65e608e4b78e2f
         // CreateICmpの返り値がi1(1bit)なので、CreateIntCastはそれをint64にcastするのに用います。
+        case '<':
+            L = Builder.CreateICmp(llvm::CmpInst::ICMP_SLT, L, R, "slttmp");
+            return Builder.CreateIntCast(L, Type::getInt64Ty(Context), true, "cast_i1_to_i64");
         default:
             return LogErrorV("invalid binary operator");
     }
@@ -186,6 +189,12 @@ Value *IfExprAST::codegen() {
     // "then"ブロックを参考に、"else"ブロックのcodegenを実装して下さい。
     // 注意: 20行下のコメントアウトを外して下さい。
     ParentFunc->getBasicBlockList().push_back(ElseBB);
+    Builder.SetInsertPoint(ElseBB);
+    Value *ElseV = Else->codegen();
+    if (!ElseV)
+        return nullptr;
+    Builder.CreateBr(MergeBB);
+    ElseBB = Builder.GetInsertBlock();
 
     // "ifcont"ブロックのcodegen
     ParentFunc->getBasicBlockList().push_back(MergeBB);
@@ -202,7 +211,7 @@ Value *IfExprAST::codegen() {
 
     PN->addIncoming(ThenV, ThenBB);
     // TODO 3.4:を実装したらコメントアウトを外して下さい。
-    // PN->addIncoming(ElseV, ElseBB);
+    PN->addIncoming(ElseV, ElseBB);
     return PN;
 }
 
@@ -241,7 +250,7 @@ static void HandleTopLevelExpression() {
 }
 
 static void MainLoop() {
-    myModule = llvm::make_unique<Module>("my cool jit", Context);
+    myModule = std::make_unique<Module>("my cool jit", Context);
     while (true) {
         switch (CurTok) {
             case tok_eof:

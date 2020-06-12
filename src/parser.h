@@ -144,7 +144,7 @@ static std::unique_ptr<ExprAST> ParseExpression();
 // 数値リテラルをパースする関数。
 static std::unique_ptr<ExprAST> ParseNumberExpr() {
     // NumberASTのValにlexerからnumValを読んできて、セットする。
-    auto Result = llvm::make_unique<NumberAST>(lexer.getNumVal());
+    auto Result = std::make_unique<NumberAST>(lexer.getNumVal());
     getNextToken(); // トークンを一個進めて、returnする。
     return std::move(Result);
 }
@@ -188,7 +188,7 @@ static std::unique_ptr<ExprAST> ParseIdentifierExpr() {
     // 3. 次のトークンが'('の場合は関数呼び出し。そうでない場合は、
     // VariableExprASTを識別子を入れてインスタンス化し返す。
     if (CurTok != '(')
-        return llvm::make_unique<VariableExprAST>(IdName);
+        return std::make_unique<VariableExprAST>(IdName);
 
     // 4. '('を読んでトークンを次に進める。
     getNextToken();
@@ -219,28 +219,47 @@ static std::unique_ptr<ExprAST> ParseIdentifierExpr() {
     getNextToken();
 
     // 7. CallExprASTを構成し、返す。
-    return llvm::make_unique<CallExprAST>(IdName, std::move(args));
+    return std::make_unique<CallExprAST>(IdName, std::move(args));
 }
 
 static std::unique_ptr<ExprAST> ParseIfExpr() {
-    return nullptr;
     // TODO 3.3: If文のパーシングを実装してみよう。
     // 1. ParseIfExprに来るということは現在のトークンが"if"なので、
     // トークンを次に進めます。
+    getNextToken();
 
     // 2. ifの次はbranching conditionを表すexpressionがある筈なので、
     // ParseExpressionを呼んでconditionをパースします。
+    auto Cond = ParseExpression();
+    if (!Cond)
+        return nullptr;
 
     // 3. "if x < 4 then .."のような文の場合、今のトークンは"then"である筈なので
     // それをチェックし、トークンを次に進めます。
+    if (CurTok != tok_then) {
+        std::cout << lexer.getIdentifier() << std::endl;;
+        return LogError("expected then");
+    }
+    getNextToken();
 
     // 4. "then"ブロックのexpressionをParseExpressionを呼んでパースします。
+    auto Then = ParseExpression();
+    if (!Then)
+        return nullptr;
 
     // 5. 3と同様、今のトークンは"else"である筈なのでチェックし、トークンを次に進めます。
+    if (CurTok != tok_else)
+        return LogError("expected else");
+    getNextToken();
 
     // 6. "else"ブロックのexpressionをParseExpressionを呼んでパースします。
+    auto Else = ParseExpression();
+    if (!Else)
+        return nullptr;
 
     // 7. IfExprASTを作り、returnします。
+    return std::make_unique<IfExprAST>(std::move(Cond), std::move(Then),
+            std::move(Else));
 }
 
 // ParsePrimary - NumberASTか括弧をパースする関数
@@ -297,7 +316,7 @@ static std::unique_ptr<ExprAST> ParseBinOpRHS(int CallerPrec,
         }
 
         // LHS, RHSをBinaryASTにしてLHSに代入する。
-        LHS = llvm::make_unique<BinaryAST>(BinOp, std::move(LHS), std::move(RHS));
+        LHS = std::make_unique<BinaryAST>(BinOp, std::move(LHS), std::move(RHS));
     }
 }
 
@@ -325,7 +344,7 @@ static std::unique_ptr<PrototypeAST> ParsePrototype() {
 
     getNextToken();
 
-    return llvm::make_unique<PrototypeAST>(FnName, std::move(ArgNames));
+    return std::make_unique<PrototypeAST>(FnName, std::move(ArgNames));
 }
 
 static std::unique_ptr<FunctionAST> ParseDefinition() {
@@ -335,7 +354,7 @@ static std::unique_ptr<FunctionAST> ParseDefinition() {
         return nullptr;
 
     if (auto E = ParseExpression())
-        return llvm::make_unique<FunctionAST>(std::move(proto), std::move(E));
+        return std::make_unique<FunctionAST>(std::move(proto), std::move(E));
     return nullptr;
 }
 
@@ -353,9 +372,9 @@ static std::unique_ptr<ExprAST> ParseExpression() {
 // __anon_exprという関数がトップレベルに作られ、その中に全てのASTが入る。
 static std::unique_ptr<FunctionAST> ParseTopLevelExpr() {
     if (auto E = ParseExpression()) {
-        auto Proto = llvm::make_unique<PrototypeAST>("__anon_expr",
+        auto Proto = std::make_unique<PrototypeAST>("__anon_expr",
                 std::vector<std::string>());
-        return llvm::make_unique<FunctionAST>(std::move(Proto), std::move(E));
+        return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
     }
     return nullptr;
 }
