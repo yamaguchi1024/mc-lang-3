@@ -31,4 +31,12 @@ Call fib with 10: 55
 ```
 余力がある方は、fibよりも複雑な例をMC言語で実装してみて下さい。
 
-課題は以上になります。三週間お疲れ様でした！
+課題は以上になります。三週間お疲れ様でした！  
+  
+
+### Continuous build status  
+  
+Build Type | Status  
+:-: | :-:  
+**Ubuntu 18.04 LTS Debug x64** | [![Ubuntu 18.04 LTS Debug x64](https://github.com/YuqiaoZhang/mc-lang-3/workflows/Ubuntu%2018.04%20LTS%20Debug%20x64/badge.svg)](https://github.com/YuqiaoZhang/mc-lang-3/actions?query=workflow%3A%22Ubuntu+18.04+LTS+Debug+x64%22)  
+    

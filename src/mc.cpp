@@ -41,6 +41,17 @@ using namespace llvm::sys;
 
 Lexer lexer;
 
+// c++14 make_unique
+// https://en.cppreference.com/w/cpp/memory/unique_ptr/make_unique
+namespace std
+{
+    template <class T, class... Args>
+    std::unique_ptr<T> make_unique(Args &&... args)
+    {
+        return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+    }
+} // namespace std
+
 #include "parser.h"
 
 #include "codegen.h"

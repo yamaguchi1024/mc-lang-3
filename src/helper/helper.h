@@ -32,7 +32,7 @@ static void write_output(void) {
 
     auto Filename = "output.o";
     std::error_code EC;
-    raw_fd_ostream dest(Filename, EC, sys::fs::OF_None);
+    raw_fd_ostream dest(Filename, EC, sys::fs::OpenFlags::F_None);
 
     if (EC) {
         errs() << "Could not open file: " << EC.message();
@@ -40,9 +40,9 @@ static void write_output(void) {
     }
 
     legacy::PassManager pass;
-    auto FileType = CGFT_ObjectFile;
+    auto FileType = llvm::LLVMTargetMachine::CGFT_ObjectFile;
 
-    if (TheTargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType)) {
+    if (TheTargetMachine->addPassesToEmitFile(pass, dest, FileType)) {
         errs() << "TheTargetMachine can't emit a file of this type";
         return;
     }
